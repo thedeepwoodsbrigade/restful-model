@@ -35,7 +35,7 @@ var RestfulModel = {
           console.log('Creating a ' + options.className);
           return this.build(attributes);
         },
-        all: function(){
+        all: function(callback){
           console.log('Returning all the ' + options.className + ' records');
           var allThis = this;
           xhr = new XMLHttpRequest();
@@ -48,7 +48,13 @@ var RestfulModel = {
             for(var i=0; i < length; i += 1){
               models.push(allThis.build(data[i]));
             }
-            return models;
+            if(callback){
+              console.log('Triggering Callback');
+              return callback(models);
+            } else {
+              console.log('Returning models');
+              return models;
+            }
           };
           xhr.send();
         }
