@@ -28,6 +28,7 @@ var RestfulModel = {
                 this[attribute] = attributes[attribute];
               }
             }
+
             return Model;
           }())(attributes);
         },
@@ -56,6 +57,24 @@ var RestfulModel = {
               return models;
             }
           };
+          xhr.send();
+        },
+        find: function(id, callback){
+          console.log('Searching for a ' + options.className + ' with the id of ' + id);
+          var findThis = this;
+          xhr = new XMLHttpRequest();
+          xhr.open('GET', this.restfulURL + '/' + id);
+          xhr.onload = function(){
+            data  = JSON.parse(this.responseText);
+            model = findThis.build(data);
+            if(callback){
+              console.log('Triggering Callback from find');
+              return callback(model);
+            } else {
+              console.log('Returning model from find');
+              return model;
+            }
+          }
           xhr.send();
         }
       };
