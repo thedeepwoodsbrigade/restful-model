@@ -1,14 +1,83 @@
 var RestfulModel = {
   generate: (function(){
     return function(options){
-      console.log('Generating model ' + options.className);
       var attributeNames = options.fields;
 
       var Model = {
-        attributesNames: attributeNames,
+        attributeNames: attributeNames,
         restfulURL: options.baseUrl ? options.baseUrl : '/' + options.className,
+        requiredData: options.requiredData,
+        log: function(message){
+          console.log(message);
+        },
+        jsonToUrlEncoding: function(json, prefix, result){
+          result = result || {};
+          for(var property in json){
+            if(json.hasOwnProperty(property)){
+              var value = json[property];
+              var name  = prefix ? prefix + '[' + property + ']' : property;
+              if(typeof value !== 'object'){
+                result[name] = value;
+              } else {
+                this.jsonToUrlEncoding(value, name, result);
+              }
+            }
+          }
+          return result;
+        },
+        formData: function(){
+          var formData = new FormData();
+          for(var field in this.requiredData){
+            formData.append(field, this.requiredData[field]);
+          }
+          return formData;
+        },
+        urlData: function(){
+          var data = [];
+          for(var field in this.requiredData){
+            data.push(field + '=' + this.requiredData[field]);
+          }
+          return data.join('&');
+        },
+        appendToUrl: function(url, string){
+          var appendedUrl = (url + ((/\?/).test(url) ? '&' : '?') + string);
+          return appendedUrl;
+        },
+        ajax: function(url, options){
+          var restfulScope = this;
+          var method       = options.method ? options.method.toUpperCase() : 'GET';
+          var xhr          = new XMLHttpRequest();
+
+          if(method == 'GET'){
+            url = this.appendToUrl(url, this.urlData());
+            if(options.attributes){
+              for(var attribute in attributes){
+                url = this.appendToUrl(url, attribute + '=' + attributes[attribute]);
+              }
+            }
+          }
+
+          if(options.load) {xhr.onload  = options.load; }
+          if(options.error){xhr.onerror = options.error;}
+          
+          xhr.open(method, url);
+
+          if((method == 'PUT') || (method == 'POST')){
+            var form = this.formData();
+            if(options.attributes){
+              var attributes = this.jsonToUrlEncoding(options.attributes);
+              for(var attribute in attributes){
+                form.append(attribute, attributes[attribute]);
+              }
+            }
+            xhr.send(form);
+          } else {
+            xhr.send();
+          }
+
+          return xhr;
+        },
         build: function(attributes){
-          console.log('Building the ' + options.className);
           return new (function(){
             function Model(attributes){
               this.className      = options.className;
@@ -33,45 +102,76 @@ var RestfulModel = {
           }())(attributes);
         },
         new: function(attributes){
-          console.log('Creating a ' + options.className);
           return this.build(attributes);
         },
+        save: function(model, callback){
+          var saveThis = this;
+          var method   = 'POST';
+          var url      = this.restfulURL;
+          var attributes = {};
+          attributes[options.className.toLowerCase()] = {};
+
+          if(model.id){
+            method = 'PUT';
+            url    = (url + '/' + model.id);
+          }
+
+          var length = this.attributeNames.length;
+          for(var i=0; i < length; i += 1){
+            var attribute = this.attributeNames[i];
+            if(model[attribute] != undefined){
+              attributes[options.className.toLowerCase()][attribute] = model[attribute];
+            }
+          }
+
+          var request = this.ajax(
+            url,
+            {
+              method: method,
+              attributes: attributes,
+              load: function(){
+                var data = JSON.parse(this.responseText);
+                var model = saveThis.build(data);
+                if(callback){
+                  return callback(model);
+                }
+              }
+            }
+          );
+          return request;
+        },
         all: function(callback){
-          console.log('Returning all the ' + options.className + ' records');
           var allThis = this;
-          xhr = new XMLHttpRequest();
-          xhr.open('GET', this.restfulURL);
-          xhr.onload = function(){
-            var models = [];
-            var data   = JSON.parse(this.responseText);
-            var length = data.length;
-            console.log(length + ' ' + options.className + ' records found');
-            for(var i=0; i < length; i += 1){
-              models.push(allThis.build(data[i]));
+          var request = this.ajax(
+            this.restfulURL,
+            {
+              load: function(){
+                var models = [];
+                var data   = JSON.parse(this.responseText);
+                var length = data.length;
+
+                for(var i=0; i < length; i += 1){
+                  models.push(allThis.build(data[i]));
+                }
+
+                if(callback){
+                  return callback(models);
+                }
+              }
             }
-            if(callback){
-              console.log('Triggering Callback');
-              return callback(models);
-            } else {
-              console.log('Returning models');
-              return models;
-            }
-          };
-          xhr.send();
+          );
+          return request;
         },
         find: function(id, callback){
-          console.log('Searching for a ' + options.className + ' with the id of ' + id);
           var findThis = this;
-          xhr = new XMLHttpRequest();
+          var xhr = new XMLHttpRequest();
           xhr.open('GET', this.restfulURL + '/' + id);
           xhr.onload = function(){
-            data  = JSON.parse(this.responseText);
-            model = findThis.build(data);
+            var data  = JSON.parse(this.responseText);
+            var model = findThis.build(data);
             if(callback){
-              console.log('Triggering Callback from find');
               return callback(model);
             } else {
-              console.log('Returning model from find');
               return model;
             }
           }
