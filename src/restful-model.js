@@ -164,18 +164,19 @@ var RestfulModel = {
         },
         find: function(id, callback){
           var findThis = this;
-          var xhr = new XMLHttpRequest();
-          xhr.open('GET', this.restfulURL + '/' + id);
-          xhr.onload = function(){
-            var data  = JSON.parse(this.responseText);
-            var model = findThis.build(data);
-            if(callback){
-              return callback(model);
-            } else {
-              return model;
+          var url      = this.restfulURL + '/' + id;
+          var request  = this.ajax(
+            url,
+            {
+              load: function(){
+                var data  = JSON.parse(this.responseText);
+                var model = findThis.build(data);
+                if(callback){
+                  return callback(model);
+                }
+              }
             }
-          }
-          xhr.send();
+          );
         }
       };
 
