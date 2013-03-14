@@ -78,8 +78,10 @@ var RestfulModel = {
           return xhr;
         },
         build: function(attributes){
+          var ModelScope = this;
           return new (function(){
             function Model(attributes){
+              this.parentClass    = ModelScope;
               this.className      = options.className;
               this.attributeNames = attributeNames;
               this.attributes     = {};
@@ -97,6 +99,11 @@ var RestfulModel = {
                 this[attribute] = attributes[attribute];
               }
             }
+
+            Model.prototype.save = function(callback){
+              var instance = this;
+              this.parentClass.save(instance, callback(instance));
+            };
 
             return Model;
           }())(attributes);
