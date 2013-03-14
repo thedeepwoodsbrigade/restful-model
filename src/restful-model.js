@@ -102,7 +102,12 @@ var RestfulModel = {
 
             Model.prototype.save = function(callback){
               var instance = this;
-              this.parentClass.save(instance, callback(instance));
+              instance.parentClass.save(instance, callback ? callback(instance) : instance.parentClass.log);
+            };
+
+            Model.prototype.destroy = function(callback){
+              var instance = this;
+              instance.parentClass.destroy(instance, callback ? callback(instance) : instance.parentClass.log);
             };
 
             return Model;
@@ -110,6 +115,22 @@ var RestfulModel = {
         },
         new: function(attributes){
           return this.build(attributes);
+        },
+        destroy: function(model, callback){
+          var destroyThis = this;
+          var url         = this.restfulURL + '/' + model.id;
+          var request     = this.ajax(
+            url,
+            {
+              method: 'DELETE',
+              load: function(){
+                var data = JSON.parse(this.responseText);
+                if(callback){
+                  callback(model);
+                }
+              }
+            }
+          );
         },
         save: function(model, callback){
           var saveThis = this;
