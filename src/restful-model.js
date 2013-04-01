@@ -1,10 +1,13 @@
 var RestfulModel = {
   generate: (function(){
     return function(options){
-      var attributeNames = options.fields;
+      var attributeNames         = options.fields;
+      var readOnlyAttributeNames = options.fieldsReadOnly;
+      var hooks                  = options.hooks;
 
       var Model = {
         attributeNames: attributeNames,
+        readOnlyAttributeNames: readOnlyAttributeNames,
         restfulURL: options.baseUrl ? options.baseUrl : '/' + options.className,
         requiredData: options.requiredData,
         log: function(message){
@@ -81,10 +84,11 @@ var RestfulModel = {
           var ModelScope = this;
           return new (function(){
             function Model(attributes){
-              this.parentClass    = ModelScope;
-              this.className      = options.className;
-              this.attributeNames = attributeNames;
-              this.attributes     = {};
+              this.parentClass            = ModelScope;
+              this.className              = options.className;
+              this.attributeNames         = attributeNames;
+              this.readOnlyAttributeNames = readOnlyAttributeNames;
+              this.attributes             = {};
 
               if(attributeNames){
                 for(var attribute in attributes){
@@ -97,6 +101,10 @@ var RestfulModel = {
               } else {
                 this.attributes[attribute] = attributes[attribute];
                 this[attribute] = attributes[attribute];
+              }
+
+              for(var hook in hooks){
+                this[hook] = hooks[hook];
               }
             }
 
