@@ -90,17 +90,17 @@ var RestfulModel = {
               this.readOnlyAttributeNames = readOnlyAttributeNames;
               this.attributes             = {};
 
-              if(attributeNames){
-                for(var attribute in attributes){
+              for(var attribute in attributes){
+                if(attributeNames){
                   var validAttribute = attributeNames.indexOf(attribute) !== -1;
                   if(validAttribute){
                     this.attributes[attribute] = attributes[attribute];
                     this[attribute] = attributes[attribute];
                   }
+                } else {
+                  this.attributes[attribute] = attributes[attribute];
+                  this[attribute] = attributes[attribute];
                 }
-              } else {
-                this.attributes[attribute] = attributes[attribute];
-                this[attribute] = attributes[attribute];
               }
 
               for(var hook in hooks){
@@ -110,12 +110,12 @@ var RestfulModel = {
 
             Model.prototype.save = function(callback){
               var instance = this;
-              instance.parentClass.save(instance, callback ? callback(instance) : instance.parentClass.log);
+              instance.parentClass.save(instance, callback ? callback : instance.parentClass.log);
             };
 
             Model.prototype.destroy = function(callback){
               var instance = this;
-              instance.parentClass.destroy(instance, callback ? callback(instance) : instance.parentClass.log);
+              instance.parentClass.destroy(instance, callback ? callback : instance.parentClass.log);
             };
 
             return Model;
@@ -152,11 +152,19 @@ var RestfulModel = {
             url    = (url + '/' + model.id);
           }
 
-          var length = this.attributeNames.length;
-          for(var i=0; i < length; i += 1){
-            var attribute = this.attributeNames[i];
-            if(model[attribute] != undefined){
-              attributes[options.className.toLowerCase()][attribute] = model[attribute];
+          if(attributeNames){
+            var length = attributeNames.length;
+            for(var i=0; i < length; i += 1){
+              var attribute = attributeNames[i];
+              if(model[attribute] != undefined){
+                attributes[options.className.toLowerCase()][attribute] = model[attribute];
+              }
+            }
+          } else {
+            for(attribute in model.attributes){
+              if(model[attribute] != undefined){
+                attributes[options.className.toLowerCase()][attribute] = model[attribute];
+              }
             }
           }
 
